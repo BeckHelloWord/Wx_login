@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+
+<body>
+<script>
+
+
+
+    appid = "wx3c96d01c38f6491b";
+    secret = "153c71afdd224d6994db79e4ba75f25b";
+
+
+    function ajax(method, url, data, success) {
+        var xhr = null;
+        try {
+            xhr = new XMLHttpRequest();
+        } catch (e) {
+            xhr = new ActiveXObject('Microsoft.XMLHTTP');
+        }
+
+        if (method == 'get' && data) {
+            url += '?' + data;
+        }
+
+        xhr.open(method,url,true);
+        if (method == 'get') {
+            xhr.send();
+        } else {
+            xhr.setRequestHeader('content-type', 'application/x-www-form-urlencoded');
+            xhr.send(data);
+        }
+
+        xhr.onreadystatechange = function() {
+            console.log(xhr.status)
+            if ( xhr.readyState == 4 ) {
+                
+                if ( xhr.status == 200 ) {
+                    success && success(eval('('+xhr.responseText+')'));
+                } else {
+                    alert('出错了,Err：' + xhr.status);
+                }
+            }
+
+        }
+    }
+
+
+    /**
+     * 获取参数
+     * @param name
+     * @returns {null}
+     * @constructor
+     */
+    function GetQueryString(name)
+    {
+        var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
+        var r = window.location.search.substr(1).match(reg);
+        if(r!=null)return  unescape(r[2]); return null;
+    }
+
+    var code = GetQueryString("code");
+
+
+    getToken(code);
+
+    //获取当前用户的token
+    function getToken($code) {
+        var url ="https://api.weixin.qq.com/sns/oauth2/access_token?appid="+appid+"&secret="+secret+"&code="+$code+"&grant_type=authorization_code";
+        ajax("get",url,'',function (data) {
+            getUser(data.access_token,data.openid)
+        })
+
+    }
+
+    //通过token获取用户信息
+    function getUser(access_token,openid) {
+        var url = "https://api.weixin.qq.com/sns/userinfo?access_token="+access_token+"&openid="+openid+"&lang=zh_CN";
+        ajax("get",url,'',function (data) {
+            console.log(data)
+        })
+    }
+
+</script>
+
+</body>
+</html>

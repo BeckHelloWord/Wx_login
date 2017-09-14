@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1,minimum-scale=1,user-scalable=no">
+    <title>微信登录</title>
+</head>
+
+<body>
+    <button id="wx_login">微信登录</button>
+    <script>
+        /*
+    思路：
+    1、访问https://open.weixin.qq.com/connect/oauth2/authorize#wechat_redirect地址带上各种参数。
+    2、用户授权后，通过步骤1上重定向地址，跳转到我们的指定网页
+    3、指定网页通过url里的code获取，访问https://api.weixin.qq.com/sns/oauth2/access_token地址附加各种参数，获取用户token，openid
+    4、将步骤3的token,openid，去访问https://api.weixin.qq.com/sns/userinfo，获取用户信息.
+
+    微信账号公众号：https://mp.weixin.qq.com/debug/cgi-bin/sandboxinfo?action=showinfo&t=sandbox/index
+    */
+
+
+        var appid = "wx3c96d01c38f6491b";
+        var GWC = {
+            version: '1.1.1',
+            urlParams: {},
+            appendParams: function (url, params) {
+                if (params) {
+                    var baseWithSearch = url.split('#')[0];
+                    var hash = url.split('#')[1];
+                    for (var key in params) {
+                        var attrValue = params[key];
+                        if (attrValue !== undefined) {
+                            var newParam = key + "=" + attrValue;
+                            if (baseWithSearch.indexOf('?') > 0) {
+                                var oldParamReg = new RegExp('^' + key + '=[-%.!~*\'\(\)\\w]*', 'g');
+                                if (oldParamReg.test(baseWithSearch)) {
+                                    baseWithSearch = baseWithSearch.replace(oldParamReg, newParam);
+                                } else {
+                                    baseWithSearch += "&" + newParam;
+                                }
+                            } else {
+                                baseWithSearch += "?" + newParam;
+                            }
+                        }
+                    }
+
+                    if (hash) {
+                        url = baseWithSearch + '#' + hash;
+                    } else {
+                        url = baseWithSearch;
+                    }
+                }
+                return url;
+            },
+            getUrlParams: function () {
+                var pairs = location.search.substring(1).split('&');
+                for (var i = 0; i < pairs.length; i++) {
+                    var pos = pairs[i].indexOf('=');
+                    if (pos === -1) {
+                        continue;
+                    }
+                    GWC.urlParams[pairs[i].substring(0, pos)] = decodeURIComponent(pairs[i].substring(pos + 1));
+                }
+            },
+            doRedirect: function () {
+                var code = GWC.urlParams['index'];
+                var appId = GWC.urlParams['appid'];
+                var scope = GWC.urlParams['scope'] || 'snsapi_base';
+                var state = GWC.urlParams['state'];
+                var redirectUri;
+
+                if (!code) {
+                    //第一步，没有拿到code，跳转至微信授权页面获取code
+                    redirectUri = GWC.appendParams('https://open.weixin.qq.com/connect/oauth2/authorize#wechat_redirect', {
+                        'appid': appid,
+                        'redirect_uri': encodeURIComponent("http://" + window.location.host + "/my/wx_login/notify.html"),
+                        'response_type': 'code',
+                        'scope': 'snsapi_userinfo',
+                        'state': 'STATE',
+                    });
+                } else {
+                    //第二步，从微信授权页面跳转回来，已经获取到了code，再次跳转到实际所需页面
+                    redirectUri = GWC.appendParams(GWC.urlParams['redirect_uri'], {
+                        'code': code,
+                        'state': state
+                    });
+                }
+                //用户授权后，页面跳转到redirect_uri属性地址；即notify.html
+                location.href = redirectUri;
+            }
+        };
+
+        document.getElementById('wx_login').addEventListener('click', function () {
+            GWC.getUrlParams();
+            GWC.doRedirect();
+        })
+    </script>
+</body>
+
+</html>
